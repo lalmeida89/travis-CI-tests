@@ -150,3 +150,83 @@ describe("Shopping List", function() {
     );
   });
 });
+
+describe("Recipes", function(){
+  before(function() {
+    return runServer();
+  })
+  after(function() {
+    return closeServer();
+  })
+  it("should show all recipes on GET", function(){
+    return chai
+      .request(app)
+      .get("/recipes")
+      .then(function(res){
+        console.log(res.body);
+        expect(res).to.have.status(200)
+        expect(res).to.be.json
+        expect(res.body).to.be.a('array')
+        expect(res.body.length).to.be.at.least(2)
+        const expectedKeys = ["id", "name", "ingredients"]
+        res.body.forEach(function(recipe){
+          expect(recipe).to.be.a('object')
+          expect(recipe).to.include.keys(expectedKeys)
+          expect(recipe.ingredients).to.be.a('array')
+        })
+      })
+  })
+  it('should a new recipe on POST', function(){
+    const newRecipe = {
+      name: 'hot ham water',
+      ingredients: ['water', 'ham', 'hot']
+    }
+    return chai
+      .request(app)
+      .post("/recipes")
+      .send(newRecipe)
+      .then(function(res) {
+        expect(res).to.have.status(201)
+        expect(res).to.be.json
+        expect(res.body).to.be.an('object')
+        expect(res.body).to.include.keys('id', 'name', 'ingredients')
+        expect(res.body.id).to.not.equal(null)
+        expect(res.body.ingredients).to.be.an('array')
+        expect(res.body.ingredients.length).to.be.equal(3)
+        expect(res.body).to.deep.equal(
+          Object.assign(newRecipe, {id: res.body.id})
+        )
+      })
+  })
+  it('should delete a recipe on DELETE', function(){
+    return chai.request(app)
+      .get('/recipes')
+      .then(function(res){
+        return chai.request(app)
+        .delete(`/recipes/${res.body[0].id}`)
+      })
+      .then(function(res) {
+        console.log(res.body);
+        expect(res).to.have.status(204)
+      })
+  })
+  it('should update a recipe on PUT', function(){
+    const updatedRecipe = {
+      name: 'hot ham water',
+      ingredients: ['hot', 'ham', 'water']
+    }
+    return chai.request(app)
+      .get('/recipes')
+      .then(function(res) {
+        console.log(res.body);
+        updatedRecipe.id = res.body[0].id
+        return chai.request(app)
+          .put(`/recipes/${updatedRecipe.id}`)
+          .send(updatedRecipe)
+      })
+      .then(function(res){
+        console.log(res.body, updatedRecipe);
+        expect(res).to.have.status(204)
+      })
+  })
+})
